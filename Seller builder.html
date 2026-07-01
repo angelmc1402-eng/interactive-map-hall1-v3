@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HALL 1 - Sponsor Builder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --oro-base: #f1c40f;
+        --oro-deep: #f39c12;
+        --morado-vip: #9b59b6;
+        --dark-bg: #1e272e;
+        --panel-bg: #ffffff;
+        --fuente: 'Inter', sans-serif;
+    }
+
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--dark-bg); font-family: var(--fuente); }
+    
+    #viewport { width: 100vw; height: 100vh; overflow: auto; display: block; cursor: grab; }
+    #viewport:active { cursor: grabbing; }
+    
+    #container { position: relative; transform-origin: 0 0; transition: transform 0.05s ease-out; display: inline-block; }
+    img { display: block; image-rendering: high-quality; max-width: none; pointer-events: none; user-select: none; }
+
+    /* ZONA SPONSOR */
+    .sponsor-zone { 
+        position: absolute; 
+        border: 2px solid var(--oro-base); 
+        background: rgba(241, 196, 15, 0.3); 
+        box-sizing: border-box;
+        border-radius: 4px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 10px; color: white; font-weight: bold; text-shadow: 1px 1px 2px #000;
+        cursor: grab; transition: background 0.1s;
+        text-align: center; overflow: hidden; padding: 2px;
+    }
+    .sponsor-zone:active { cursor: grabbing; }
+    .sponsor-zone:hover { background: rgba(241, 196, 15, 0.6); z-index: 100; }
+    
+    .sponsor-zone.selected {
+        border: 2px solid var(--morado-vip);
+        background: rgba(155, 89, 182, 0.5);
+        z-index: 200;
+        box-shadow: 0 0 15px rgba(155, 89, 182, 0.8);
+    }
+
+    /* PALETA IZQUIERDA */
+    #palette {
+        position: fixed; top: 10px; left: 10px; width: 300px; 
+        background: var(--panel-bg); padding: 20px; border-radius: 8px;
+        box-shadow: 5px 0 30px rgba(0,0,0,0.3); z-index: 20000;
+        display: flex; flex-direction: column; gap: 12px;
+    }
+    
+    #palette h3 { margin: 0; font-size: 16px; color: #333; text-transform: uppercase; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    
+    .btn-create {
+        width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: 800; cursor: pointer;
+        font-size: 13px; color: white; transition: all 0.2s;
+    }
+    .btn-small { background: #e67e22; } .btn-small:hover { background: #d35400; }
+    .btn-large { background: #f1c40f; color: #333; } .btn-large:hover { background: #f39c12; color: white; }
+    .btn-free { background: #9b59b6; } .btn-free:hover { background: #8e44ad; }
+
+    /* PROPIEDADES FLOTANTE (DERECHA) */
+    #prop-float {
+        position: fixed; top: 20px; right: 20px; background: white; padding: 20px;
+        border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); z-index: 20000;
+        width: 280px; display: none; border-top: 4px solid var(--morado-vip);
+    }
+    #prop-float.active { display: block; animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    @keyframes popIn { from { transform: translateX(20px); opacity:0; } to { transform: translateX(0); opacity:1; } }
+
+    .input-group { margin-bottom: 10px; }
+    .input-group label { display: block; font-size: 10px; font-weight: 800; color: #64748b; margin-bottom: 4px; text-transform: uppercase;}
+    .input-group input { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; box-sizing: border-box; }
+    .input-group input:focus { border-color: var(--morado-vip); outline: none; }
+
+    .size-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; padding-top: 15px; border-top: 1px dashed #eee;}
+    
+    .btn-del { width: 100%; padding: 10px; background: #ff4757; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 15px; font-size: 12px; }
+    .btn-del:hover { background: #ff6b81; }
+
+    /* BOTÓN EXPORTAR */
+    #export-bar { position: fixed; bottom: 20px; left: 330px; right: 20px; pointer-events: none; display: flex; justify-content: center; z-index: 20000; }
+    .btn-exp { pointer-events: auto; background: #2d3436; color: var(--oro-base); border: 2px solid var(--oro-base); padding: 12px 30px; border-radius: 50px; font-weight: 800; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.4); transition: transform 0.2s; }
+    .btn-exp:hover { transform: translateY(-3px) scale(1.05); background: var(--oro-base); color: #111; }
+
+    #clipboard-area { position: absolute; left: -9999px; }
+</style>
+</head>
+<body>
+
+    <div id="palette">
+        <h3>⭐ Sponsor Builder</h3>
+        <p style="font-size: 11px; color: #7f8c8d; margin-top: 0;">Añade zonas VIP para los vendedores y rellena sus datos para el Tooltip mágico.</p>
+        
+        <button class="btn-create btn-small" onclick="spawnSponsor('small')">🟩 SPONSOR PEQUEÑO</button>
+        <button class="btn-create btn-large" onclick="spawnSponsor('large')">🟨 SPONSOR GRANDE</button>
+        <button class="btn-create btn-free" onclick="spawnSponsor('free')">🟪 ZONA LIBRE (Custom)</button>
+        
+        <div style="font-size: 10px; color: #95a5a6; margin-top: 10px; background: #f1f2f6; padding: 10px; border-radius: 5px;">
+            <b>Instrucciones:</b><br>1. Crea el bloque.<br>2. Arrástralo al mapa.<br>3. Haz clic en él para abrir el panel de enlaces.<br>4. Exporta al terminar.
+        </div>
+    </div>
+
+    <div id="prop-float">
+        <h4 style="margin: 0 0 15px 0; color: var(--morado-vip); font-size: 14px;">📝 Datos del Vendedor</h4>
+        
+        <div class="input-group">
+            <label>Nombre de la Tienda</label>
+            <input type="text" id="s-name" placeholder="Ej: PokeStore BCN">
+        </div>
+        <div class="input-group">
+            <label>URL del Logo (Imagen)</label>
+            <input type="text" id="s-logo" placeholder="https://ejemplo.com/logo.png">
+        </div>
+        <div class="input-group">
+            <label>URL Instagram</label>
+            <input type="text" id="s-ig" placeholder="https://instagram.com/tu_cuenta">
+        </div>
+        <div class="input-group">
+            <label>URL Tienda Web</label>
+            <input type="text" id="s-web" placeholder="https://tutienda.com">
+        </div>
+
+        <div class="size-grid">
+            <div class="input-group" style="margin:0;">
+                <label>Ancho (%)</label>
+                <input type="number" step="0.1" id="s-width">
+            </div>
+            <div class="input-group" style="margin:0;">
+                <label>Alto (%)</label>
+                <input type="number" step="0.1" id="s-height">
+            </div>
+        </div>
+
+        <button class="btn-del" onclick="deleteSelected()">🗑️ Eliminar Sponsor</button>
+    </div>
+
+    <div id="export-bar">
+        <button class="btn-exp" onclick="exportHTML()">💾 EXPORTAR SELLER.HTML</button>
+    </div>
+
+    <div id="viewport">
+        <div id="container">
+            <img id="map-img" src="Hall 1.png" alt="Map Hall 1">
+            <div id="capa-mesas"></div> 
+        </div>
+    </div>
+
+    <textarea id="clipboard-area"></textarea>
+
+<script>
+    let scale = 0.5;
+    const container = document.getElementById('container');
+    const viewport = document.getElementById('viewport');
+    const mapImg = document.getElementById('map-img');
+    const capaMesas = document.getElementById('capa-mesas');
+    
+    // Panel de propiedades
+    const propPanel = document.getElementById('prop-float');
+    const inpName = document.getElementById('s-name');
+    const inpLogo = document.getElementById('s-logo');
+    const inpIg = document.getElementById('s-ig');
+    const inpWeb = document.getElementById('s-web');
+    const inpWidth = document.getElementById('s-width');
+    const inpHeight = document.getElementById('s-height');
+
+    let selectedSponsor = null;
+    let isDragging = false;
+    let dragOffset = { x: 0, y: 0 };
+    let sponsorCounter = 1;
+
+    window.onload = () => {
+        if(mapImg.complete) init();
+        else mapImg.onload = init;
+    };
+
+    function init() {
+        fit();
+        viewport.addEventListener('wheel', handleWheel, { passive: false });
+    }
+
+    // --- CREAR SPONSOR ---
+    window.spawnSponsor = function(type) {
+        const sponsor = document.createElement('div');
+        sponsor.className = 'sponsor-zone';
+        
+        let w = 2, h = 2; // Porcentajes por defecto
+        
+        if (type === 'small') { w = 2.0; h = 2.0; }
+        else if (type === 'large') { w = 4.0; h = 4.0; }
+        else if (type === 'free') { w = 5.0; h = 2.0; }
+
+        sponsor.style.width = w + '%';
+        sponsor.style.height = h + '%';
+        
+        // Datos por defecto
+        const defaultName = "Sponsor " + sponsorCounter++;
+        sponsor.setAttribute('data-name', defaultName);
+        sponsor.setAttribute('data-logo', '');
+        sponsor.setAttribute('data-ig', '');
+        sponsor.setAttribute('data-web', '');
+        sponsor.innerText = defaultName;
+        
+        // Poner en el centro de la pantalla
+        const rect = viewport.getBoundingClientRect();
+        const centerX = (rect.width / 2 - container.getBoundingClientRect().left) / scale;
+        const centerY = (rect.height / 2 - container.getBoundingClientRect().top) / scale;
+
+        const leftP = (centerX / mapImg.naturalWidth) * 100;
+        const topP = (centerY / mapImg.naturalHeight) * 100;
+
+        sponsor.style.left = leftP.toFixed(2) + '%';
+        sponsor.style.top = topP.toFixed(2) + '%';
+
+        capaMesas.appendChild(sponsor);
+        addInteractions(sponsor);
+        selectSponsor(sponsor);
+    }
+
+    // --- INTERACCIONES Y ARRASTRE ---
+    function addInteractions(el) {
+        el.addEventListener('mousedown', (e) => {
+            if(e.button !== 0) return; 
+            e.stopPropagation();
+            selectSponsor(el);
+            isDragging = true;
+            
+            const rect = el.getBoundingClientRect();
+            dragOffset.x = (e.clientX - rect.left) / scale;
+            dragOffset.y = (e.clientY - rect.top) / scale;
+        });
+    }
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging || !selectedSponsor) return;
+        e.preventDefault();
+        
+        const containerRect = container.getBoundingClientRect();
+        let mouseX = (e.clientX - containerRect.left) / scale;
+        let mouseY = (e.clientY - containerRect.top) / scale;
+        
+        let newX = mouseX - dragOffset.x;
+        let newY = mouseY - dragOffset.y;
+        
+        const leftP = (newX / mapImg.naturalWidth) * 100;
+        const topP = (newY / mapImg.naturalHeight) * 100;
+        
+        selectedSponsor.style.left = leftP.toFixed(4) + '%';
+        selectedSponsor.style.top = topP.toFixed(4) + '%';
+    });
+
+    document.addEventListener('mouseup', () => isDragging = false);
+
+    // --- SELECCIÓN Y FORMULARIO ---
+    function selectSponsor(el) {
+        if(selectedSponsor) selectedSponsor.classList.remove('selected');
+        selectedSponsor = el;
+        selectedSponsor.classList.add('selected');
+        propPanel.classList.add('active');
+        
+        // Rellenar formulario con los datos actuales de este bloque
+        inpName.value = selectedSponsor.getAttribute('data-name');
+        inpLogo.value = selectedSponsor.getAttribute('data-logo');
+        inpIg.value = selectedSponsor.getAttribute('data-ig');
+        inpWeb.value = selectedSponsor.getAttribute('data-web');
+        
+        inpWidth.value = parseFloat(selectedSponsor.style.width).toFixed(2);
+        inpHeight.value = parseFloat(selectedSponsor.style.height).toFixed(2);
+    }
+
+    // Deseleccionar al clicar en el mapa vacío
+    viewport.addEventListener('mousedown', (e) => {
+        if(e.target === viewport || e.target === container || e.target === mapImg) {
+            if(selectedSponsor) selectedSponsor.classList.remove('selected');
+            selectedSponsor = null;
+            propPanel.classList.remove('active');
+        }
+    });
+
+    // --- ACTUALIZADORES EN TIEMPO REAL ---
+    inpName.addEventListener('input', (e) => {
+        if(selectedSponsor) {
+            selectedSponsor.setAttribute('data-name', e.target.value);
+            selectedSponsor.innerText = e.target.value || "Sponsor";
+        }
+    });
+    inpLogo.addEventListener('input', (e) => { if(selectedSponsor) selectedSponsor.setAttribute('data-logo', e.target.value.trim()); });
+    inpIg.addEventListener('input', (e) => { if(selectedSponsor) selectedSponsor.setAttribute('data-ig', e.target.value.trim()); });
+    inpWeb.addEventListener('input', (e) => { if(selectedSponsor) selectedSponsor.setAttribute('data-web', e.target.value.trim()); });
+    
+    inpWidth.addEventListener('input', (e) => {
+        if(selectedSponsor && e.target.value) selectedSponsor.style.width = parseFloat(e.target.value) + '%';
+    });
+    inpHeight.addEventListener('input', (e) => {
+        if(selectedSponsor && e.target.value) selectedSponsor.style.height = parseFloat(e.target.value) + '%';
+    });
+
+    window.deleteSelected = function() {
+        if(selectedSponsor) {
+            selectedSponsor.remove();
+            selectedSponsor = null;
+            propPanel.classList.remove('active');
+        }
+    }
+
+    // --- TECLADO PARA MICRO-AJUSTES ---
+    document.addEventListener('keydown', (e) => {
+        if(!selectedSponsor) return;
+        // No mover si estamos escribiendo en los inputs
+        if (document.activeElement.tagName === 'INPUT') return;
+
+        if(e.key.startsWith('Arrow')) {
+            e.preventDefault();
+            const step = e.shiftKey ? 0.05 : 0.005; 
+            let t = parseFloat(selectedSponsor.style.top);
+            let l = parseFloat(selectedSponsor.style.left);
+            
+            if(e.key === 'ArrowUp') t -= step;
+            if(e.key === 'ArrowDown') t += step;
+            if(e.key === 'ArrowLeft') l -= step;
+            if(e.key === 'ArrowRight') l += step;
+            
+            selectedSponsor.style.top = t.toFixed(4) + '%';
+            selectedSponsor.style.left = l.toFixed(4) + '%';
+        }
+
+        if(e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
+    });
+
+    // --- ZOOM Y VISTA ---
+    function handleWheel(e) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        let newScale = scale * delta;
+        if(newScale > 0.05 && newScale < 15) {
+            scale = newScale;
+            container.style.transform = `scale(${scale})`;
+        }
+    }
+
+    function fit() {
+        const imgWidth = mapImg.naturalWidth || 4000;
+        scale = (window.innerWidth / imgWidth) * 0.9;
+        container.style.transform = `scale(${scale})`;
+    }
+
+    // --- EXPORTAR ---
+    window.exportHTML = function() {
+        let html = "\n";
+        
+        const mapRect = mapImg.getBoundingClientRect();
+        const sponsors = document.querySelectorAll('.sponsor-zone');
+
+        if(sponsors.length === 0) return alert("No hay sponsors en el mapa para exportar.");
+
+        sponsors.forEach(s => {
+            const rect = s.getBoundingClientRect();
+            
+            const l = ((rect.left - mapRect.left) / mapRect.width) * 100;
+            const t = ((rect.top - mapRect.top) / mapRect.height) * 100;
+            const w = (rect.width / mapRect.width) * 100;
+            const h = (rect.height / mapRect.height) * 100;
+
+            const name = s.getAttribute('data-name') || '';
+            const logo = s.getAttribute('data-logo') || '';
+            const ig = s.getAttribute('data-ig') || '';
+            const web = s.getAttribute('data-web') || '';
+
+            html += `<div class="sponsor-zone" style="left: ${l.toFixed(4)}%; top: ${t.toFixed(4)}%; width: ${w.toFixed(4)}%; height: ${h.toFixed(4)}%;" data-name="${name}" data-logo="${logo}" data-ig="${ig}" data-web="${web}"></div>\n`;
+        });
+
+        html += "";
+
+        const area = document.getElementById('clipboard-area');
+        area.value = html;
+        area.select();
+        document.execCommand('copy');
+        alert(`¡Oro puro! 🏆 \nSe han exportado ${sponsors.length} sponsors al portapapeles con todos sus enlaces incrustados.\n\nPégalos en tu seller.html`);
+    }
+
+</script>
+</body>
+</html>

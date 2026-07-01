@@ -1,0 +1,563 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HALL 1 - Master Builder V3.1</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --verde-base: #2ecc71;
+        --azul-sel: #00d2d3;
+        --rojo-del: #ff6b6b;
+        --naranja-rot: #ff9f43;
+        --dark-bg: #222f3e;
+        --panel-bg: #ffffff;
+        --fuente: 'Inter', sans-serif;
+    }
+
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--dark-bg); font-family: var(--fuente); }
+    
+    #viewport { width: 100vw; height: 100vh; overflow: auto; display: block; cursor: grab; }
+    #viewport:active { cursor: grabbing; }
+    
+    #container { position: relative; transform-origin: 0 0; transition: transform 0.05s ease-out; display: inline-block; }
+    img { display: block; image-rendering: high-quality; max-width: none; pointer-events: none; user-select: none; }
+
+    /* GRUPO DE MESAS (El Bloque invisible, solo contenedor) */
+    .mesa-group {
+        position: absolute;
+        border: none; /* CERO MARCOS */
+        cursor: grab;
+        z-index: 10;
+        box-sizing: border-box;
+    }
+    .mesa-group:active { cursor: grabbing; }
+    .mesa-group:hover { z-index: 100; }
+    .mesa-group.selected {
+        border: none; /* CERO MARCOS */
+        background: transparent;
+        z-index: 200;
+        box-shadow: none;
+    }
+
+    /* MESAS INDIVIDUALES (Dentro del bloque) */
+    .mesa { 
+        position: absolute; 
+        border: 1px solid var(--verde-base); 
+        background: rgba(46, 204, 113, 0.5); 
+        box-sizing: border-box;
+        border-radius: 2px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 8px; color: white; font-weight: bold; text-shadow: 1px 1px 0 #000;
+        transition: background 0.1s ease, border-color 0.1s ease;
+    }
+
+    /* HOVER Y SELECCIÓN DIRECTA A LAS MESAS */
+    .mesa-group:hover .mesa {
+        background: rgba(46, 204, 113, 0.8);
+    }
+    
+    /* Cuando el grupo está seleccionado, las mesas se vuelven azules */
+    .mesa-group.selected .mesa {
+        background: rgba(0, 210, 211, 0.7);
+        border-color: #ffffff;
+        box-shadow: 0 0 10px rgba(0, 210, 211, 0.8);
+    }
+    .mesa-group.selected:hover .mesa {
+        background: rgba(0, 210, 211, 0.9);
+    }
+
+    /* PALETA IZQUIERDA */
+    #palette {
+        position: fixed; top: 10px; left: 10px; width: 320px; 
+        background: var(--panel-bg); padding: 20px; border-radius: 8px;
+        box-shadow: 5px 0 30px rgba(0,0,0,0.3); z-index: 20000;
+        display: flex; flex-direction: column; gap: 15px;
+    }
+    
+    #palette h3 { margin: 0; font-size: 16px; color: #333; text-transform: uppercase; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    
+    .btn-create {
+        width: 100%; padding: 15px; background: #3b82f6; color: white;
+        border: none; border-radius: 6px; font-weight: 800; cursor: pointer;
+        font-size: 14px; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3); transition: all 0.2s;
+    }
+    .btn-create:hover { background: #2563eb; transform: translateY(-2px); }
+
+    /* SINTONIZADOR DE TAMAÑOS */
+    .tuner-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; }
+    .tuner-title { font-size: 12px; font-weight: 800; color: #475569; margin-bottom: 10px; }
+    .tuner-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .tuner-col { display: flex; flex-direction: column; gap: 5px; }
+    .tuner-col label { font-size: 10px; font-weight: bold; color: #64748b; }
+    .tuner-col input, .tuner-col select { 
+        width: 100%; padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; 
+        font-family: monospace; font-size: 12px; box-sizing: border-box;
+    }
+
+    /* PROPIEDADES FLOTANTE */
+    #prop-float {
+        position: fixed; top: 20px; right: 20px; background: white; padding: 15px;
+        border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 20000;
+        width: 250px; display: none;
+    }
+    #prop-float.active { display: block; animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    @keyframes popIn { from { transform: scale(0.9); opacity:0; } to { transform: scale(1); opacity:1; } }
+
+    .btn-action { width: 100%; padding: 8px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 11px; }
+    .btn-rot { background: var(--naranja-rot); color: white; margin-bottom: 10px;}
+    .btn-del { background: var(--rojo-del); color: white; margin-top: 10px;}
+
+    .dup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .btn-dup { background: var(--verde-base); color: white; }
+    .btn-dup:hover { background: #27ae60; }
+
+    #export-bar {
+        position: fixed; bottom: 20px; left: 350px; right: 20px;
+        pointer-events: none; display: flex; justify-content: center; z-index: 20000;
+    }
+    .btn-exp { pointer-events: auto; background: #2d3436; color: #00d2d3; border: 2px solid #00d2d3; padding: 12px 30px; border-radius: 50px; font-weight: 800; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.4); transition: transform 0.2s; }
+    .btn-exp:hover { transform: translateY(-3px) scale(1.05); background: #00d2d3; color: white; }
+
+    #clipboard-area { position: absolute; left: -9999px; }
+    .shortcuts { font-size: 11px; color: #64748b; line-height: 1.6; background: #f1f5f9; padding: 10px; border-radius: 6px;}
+</style>
+</head>
+<body>
+
+    <div id="palette">
+        <h3>🏗️ Block Builder</h3>
+        
+        <div class="tuner-box">
+            <div class="tuner-title">1. CONFIGURACIÓN</div>
+            <div class="tuner-grid">
+                <div class="tuner-col">
+                    <label>Tamaño Bloque</label>
+                    <select id="b-count">
+                        <option value="1" selected>Mesa Individual (1)</option>
+                        <option value="20">Bloque de 20</option>
+                        <option value="24">Bloque de 24</option>
+                        <option value="28">Bloque de 28</option>
+                    </select>
+                </div>
+                <div class="tuner-col">
+                    <label>Orientación</label>
+                    <select id="b-ori">
+                        <option value="horiz">Horizontal</option>
+                        <option value="vert">Vertical</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="tuner-col" style="margin-bottom: 10px;">
+                <label>Prefijo o ID (Ej: TCG-A-1)</label>
+                <input type="text" id="b-prefix" value="TCG-A-1">
+            </div>
+
+            <div class="tuner-title" style="margin-top: 10px;">2. TAMAÑO MESA (%)</div>
+            <div class="tuner-grid">
+                <div class="tuner-col">
+                    <label>Ancho (W)</label>
+                    <input type="number" step="0.01" id="m-w" value="1.15" oninput="updateSelectedGroup()">
+                </div>
+                <div class="tuner-col">
+                    <label>Alto (H)</label>
+                    <input type="number" step="0.01" id="m-h" value="0.54" oninput="updateSelectedGroup()">
+                </div>
+            </div>
+
+            <div class="tuner-title" style="margin-top: 10px;">3. SEPARACIÓN (%)</div>
+            <div class="tuner-grid">
+                <div class="tuner-col">
+                    <label>Gap Horiz (X)</label>
+                    <input type="number" step="0.01" id="g-x" value="0.20" oninput="updateSelectedGroup()">
+                </div>
+                <div class="tuner-col">
+                    <label>Gap Vert (Y)</label>
+                    <input type="number" step="0.01" id="g-y" value="0.20" oninput="updateSelectedGroup()">
+                </div>
+            </div>
+        </div>
+
+        <button class="btn-create" onclick="spawnBlock()">➕ INYECTAR BLOQUE / MESA</button>
+
+        <div class="shortcuts">
+            <b>ATAJOS DE TECLADO:</b><br>
+            • <b>R</b>: Girar Bloque/Mesa<br>
+            • <b>Supr</b>: Borrar Seleccionado<br>
+            • <b>Flechas</b>: Micro-ajuste<br>
+            • <b>Shift + Flechas</b>: Movimiento normal
+        </div>
+    </div>
+
+    <div id="prop-float">
+        <label style="font-size:10px; font-weight:bold; color:#999;">ID / PREFIJO</label>
+        <input type="text" id="inp-id" style="width:100%; padding:8px; border:2px solid #ddd; border-radius:4px; font-weight:bold; font-family:monospace; margin-bottom:10px; box-sizing: border-box;">
+        
+        <button class="btn-action btn-rot" onclick="rotateSelected()">🔄 GIRAR (R)</button>
+        
+        <label style="font-size:10px; font-weight:bold; color:#999; display:block; margin-bottom:5px;">DUPLICAR EXACTO (AUTO +1)</label>
+        <div class="dup-grid">
+            <button class="btn-action btn-dup" onclick="duplicateDirection('up')">⬆️ Arriba</button>
+            <button class="btn-action btn-dup" onclick="duplicateDirection('down')">⬇️ Abajo</button>
+            <button class="btn-action btn-dup" onclick="duplicateDirection('left')">⬅️ Izq</button>
+            <button class="btn-action btn-dup" onclick="duplicateDirection('right')">➡️ Der</button>
+        </div>
+
+        <button class="btn-action btn-del" onclick="deleteSelected()">🗑️ ELIMINAR</button>
+    </div>
+
+    <div id="export-bar">
+        <button class="btn-exp" onclick="exportHTML()">💾 EXPORTAR HTML FINAL</button>
+    </div>
+
+    <div id="viewport">
+        <div id="container">
+            <img id="map-img" src="Hall 1.png" alt="Map Hall 1">
+            <div id="capa-mesas"></div> 
+        </div>
+    </div>
+
+    <textarea id="clipboard-area"></textarea>
+
+<script>
+    let scale = 0.5;
+    const container = document.getElementById('container');
+    const viewport = document.getElementById('viewport');
+    const mapImg = document.getElementById('map-img');
+    const capaMesas = document.getElementById('capa-mesas');
+    const propPanel = document.getElementById('prop-float');
+    const inputId = document.getElementById('inp-id');
+
+    let selectedGroup = null;
+    let isDragging = false;
+    let dragOffset = { x: 0, y: 0 };
+
+    window.onload = () => {
+        if(mapImg.complete) init();
+        else mapImg.onload = init;
+    };
+
+    function init() {
+        fit();
+        viewport.addEventListener('wheel', handleWheel, { passive: false });
+    }
+
+    // Auto-Ajustar Inputs según Orientación
+    document.getElementById('b-ori').addEventListener('change', function() {
+        if(this.value === 'horiz') {
+            document.getElementById('m-w').value = 1.15;
+            document.getElementById('m-h').value = 0.54;
+        } else {
+            document.getElementById('m-w').value = 0.43;
+            document.getElementById('m-h').value = 1.50;
+        }
+    });
+
+    // --- GENERADOR DE BLOQUES ---
+    window.spawnBlock = function() {
+        const count = parseInt(document.getElementById('b-count').value);
+        const prefix = document.getElementById('b-prefix').value.trim() || "MESA";
+        const isHoriz = document.getElementById('b-ori').value === 'horiz';
+        
+        // Si es vertical desde el inicio y es bloque, false=columnas verticales
+        const rotatedStr = isHoriz ? "true" : "false";
+
+        const group = document.createElement('div');
+        group.className = 'mesa-group';
+        group.setAttribute('data-prefix', prefix);
+        group.setAttribute('data-count', count);
+        group.setAttribute('data-rotated', rotatedStr);
+        
+        // Poner en el centro de la pantalla
+        const rect = viewport.getBoundingClientRect();
+        const centerX = (rect.width / 2 - container.getBoundingClientRect().left) / scale;
+        const centerY = (rect.height / 2 - container.getBoundingClientRect().top) / scale;
+
+        const leftP = (centerX / mapImg.naturalWidth) * 100;
+        const topP = (centerY / mapImg.naturalHeight) * 100;
+
+        group.style.left = leftP.toFixed(2) + '%';
+        group.style.top = topP.toFixed(2) + '%';
+
+        capaMesas.appendChild(group);
+        renderGroup(group);
+        addInteractions(group);
+        selectGroup(group);
+    }
+
+    // --- RENDERIZADOR MATEMÁTICO DEL GRUPO ---
+    function renderGroup(group) {
+        group.innerHTML = ''; 
+        
+        const count = parseInt(group.getAttribute('data-count'));
+        const prefix = group.getAttribute('data-prefix');
+        const isRotated = group.getAttribute('data-rotated') === 'true';
+
+        const w = parseFloat(document.getElementById('m-w').value) || 1.15;
+        const h = parseFloat(document.getElementById('m-h').value) || 0.54;
+        const gapX = parseFloat(document.getElementById('g-x').value) || 0.2;
+        const gapY = parseFloat(document.getElementById('g-y').value) || 0.2;
+
+        let cols, rows;
+        if (count === 1) {
+            cols = 1; rows = 1;
+        } else if (!isRotated) {
+            cols = 2; 
+            rows = Math.ceil(count / cols);
+        } else {
+            rows = 2; 
+            cols = Math.ceil(count / rows);
+        }
+
+        const groupW = (cols * w) + ((cols - 1) * gapX);
+        const groupH = (rows * h) + ((rows - 1) * gapY);
+
+        group.style.width = groupW + '%';
+        group.style.height = groupH + '%';
+
+        for (let i = 0; i < count; i++) {
+            const mesa = document.createElement('div');
+            mesa.className = 'mesa';
+            
+            // Lógica ID
+            if (count === 1) {
+                mesa.setAttribute('data-info', prefix); // No añade -1 si es mesa suelta
+                // Mostrar solo el numero final en la caja
+                let nums = prefix.match(/\d+$/);
+                mesa.innerText = nums ? nums[0] : "";
+            } else {
+                mesa.setAttribute('data-info', `${prefix}-${i+1}`);
+                mesa.innerText = i + 1;
+            }
+            
+            let c, r;
+            if (count === 1) {
+                c = 0; r = 0;
+            } else if (!isRotated) {
+                c = i % cols;
+                r = Math.floor(i / cols);
+            } else {
+                c = Math.floor(i / rows);
+                r = i % rows;
+            }
+
+            const leftP = ((c * (w + gapX)) / groupW) * 100;
+            const topP = ((r * (h + gapY)) / groupH) * 100;
+            const widthP = (w / groupW) * 100;
+            const heightP = (h / groupH) * 100;
+
+            mesa.style.left = leftP + '%';
+            mesa.style.top = topP + '%';
+            mesa.style.width = widthP + '%';
+            mesa.style.height = heightP + '%';
+
+            group.appendChild(mesa);
+        }
+    }
+
+    window.updateSelectedGroup = function() {
+        if(selectedGroup) renderGroup(selectedGroup);
+    }
+
+    // --- INTERACCIONES Y ARRASTRE ---
+    function addInteractions(el) {
+        el.addEventListener('mousedown', (e) => {
+            if(e.button !== 0) return; 
+            e.stopPropagation();
+            selectGroup(el);
+            isDragging = true;
+            
+            const rect = el.getBoundingClientRect();
+            dragOffset.x = (e.clientX - rect.left) / scale;
+            dragOffset.y = (e.clientY - rect.top) / scale;
+        });
+    }
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging || !selectedGroup) return;
+        e.preventDefault();
+        
+        const containerRect = container.getBoundingClientRect();
+        let mouseX = (e.clientX - containerRect.left) / scale;
+        let mouseY = (e.clientY - containerRect.top) / scale;
+        
+        let newX = mouseX - dragOffset.x;
+        let newY = mouseY - dragOffset.y;
+        
+        const leftP = (newX / mapImg.naturalWidth) * 100;
+        const topP = (newY / mapImg.naturalHeight) * 100;
+        
+        selectedGroup.style.left = leftP.toFixed(4) + '%';
+        selectedGroup.style.top = topP.toFixed(4) + '%';
+    });
+
+    document.addEventListener('mouseup', () => isDragging = false);
+
+    function selectGroup(el) {
+        if(selectedGroup) selectedGroup.classList.remove('selected');
+        selectedGroup = el;
+        selectedGroup.classList.add('selected');
+        propPanel.classList.add('active');
+        
+        inputId.value = selectedGroup.getAttribute('data-prefix');
+        document.getElementById('b-count').value = selectedGroup.getAttribute('data-count');
+    }
+
+    viewport.addEventListener('mousedown', (e) => {
+        if(e.target === viewport || e.target === container || e.target === mapImg) {
+            if(selectedGroup) selectedGroup.classList.remove('selected');
+            selectedGroup = null;
+            propPanel.classList.remove('active');
+        }
+    });
+
+    inputId.addEventListener('input', (e) => {
+        if(selectedGroup) {
+            selectedGroup.setAttribute('data-prefix', e.target.value.toUpperCase());
+            renderGroup(selectedGroup); 
+        }
+    });
+
+    // --- HERRAMIENTAS ---
+    window.rotateSelected = function() {
+        if(!selectedGroup) return;
+        let isRotated = selectedGroup.getAttribute('data-rotated') === 'true';
+        selectedGroup.setAttribute('data-rotated', (!isRotated).toString());
+        
+        const w = document.getElementById('m-w').value;
+        const h = document.getElementById('m-h').value;
+        document.getElementById('m-w').value = h;
+        document.getElementById('m-h').value = w;
+
+        renderGroup(selectedGroup);
+    }
+
+    // --- DUPLICADOR MULTIDIRECCIONAL ---
+    window.duplicateDirection = function(dir) {
+        if(!selectedGroup) return;
+        const clone = selectedGroup.cloneNode(true);
+        
+        // Magia para sumar +1 al ID automáticamente
+        let prefix = selectedGroup.getAttribute('data-prefix');
+        let match = prefix.match(/(\d+)$/); // Busca números al final
+        if (match) {
+            let num = parseInt(match[1]) + 1;
+            prefix = prefix.replace(/\d+$/, num);
+        } else {
+            prefix += "-2"; // Si no había número, empieza a contar
+        }
+        clone.setAttribute('data-prefix', prefix);
+
+        // Coordenadas actuales
+        let top = parseFloat(selectedGroup.style.top);
+        let left = parseFloat(selectedGroup.style.left);
+        let w = parseFloat(selectedGroup.style.width);
+        let h = parseFloat(selectedGroup.style.height);
+        
+        const gapX = parseFloat(document.getElementById('g-x').value) || 0.2;
+        const gapY = parseFloat(document.getElementById('g-y').value) || 0.2;
+
+        // Desplazamiento exacto de Bloque + Gap
+        if (dir === 'up') top -= (h + gapY);
+        if (dir === 'down') top += (h + gapY);
+        if (dir === 'left') left -= (w + gapX);
+        if (dir === 'right') left += (w + gapX);
+
+        clone.style.top = top.toFixed(4) + '%';
+        clone.style.left = left.toFixed(4) + '%';
+
+        capaMesas.appendChild(clone);
+        renderGroup(clone); // Re-renderizar para aplicar el nuevo ID
+        addInteractions(clone);
+        selectGroup(clone);
+    }
+
+    window.deleteSelected = function() {
+        if(selectedGroup) {
+            selectedGroup.remove();
+            selectedGroup = null;
+            propPanel.classList.remove('active');
+        }
+    }
+
+    // --- TECLADO (AHORA CON MICRO-PRECISIÓN EXTREMA) ---
+    document.addEventListener('keydown', (e) => {
+        if(!selectedGroup) return;
+        if (document.activeElement === inputId || document.activeElement.tagName === 'INPUT') return;
+
+        if(e.key.startsWith('Arrow')) {
+            e.preventDefault();
+            
+            // NORMAL: 0.005% -> Precisión de píxel para zoom gigante
+            // SHIFT:  0.05%  -> Movimiento un poco más rápido
+            const step = e.shiftKey ? 0.05 : 0.005; 
+            
+            let t = parseFloat(selectedGroup.style.top);
+            let l = parseFloat(selectedGroup.style.left);
+            
+            if(e.key === 'ArrowUp') t -= step;
+            if(e.key === 'ArrowDown') t += step;
+            if(e.key === 'ArrowLeft') l -= step;
+            if(e.key === 'ArrowRight') l += step;
+            
+            selectedGroup.style.top = t.toFixed(4) + '%';
+            selectedGroup.style.left = l.toFixed(4) + '%';
+        }
+
+        if(e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
+        if(e.key.toLowerCase() === 'r') rotateSelected();
+    });
+
+    // --- ZOOM ---
+    function handleWheel(e) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        let newScale = scale * delta;
+        if(newScale > 0.05 && newScale < 15) {
+            scale = newScale;
+            container.style.transform = `scale(${scale})`;
+        }
+    }
+
+    function fit() {
+        const imgWidth = mapImg.naturalWidth || 4000;
+        scale = (window.innerWidth / imgWidth) * 0.9;
+        container.style.transform = `scale(${scale})`;
+    }
+
+    // --- EL EXPORTADOR MÁGICO ---
+    window.exportHTML = function() {
+        let html = "\n";
+        
+        const mapRect = mapImg.getBoundingClientRect();
+        const mesas = document.querySelectorAll('.mesa');
+
+        if(mesas.length === 0) return alert("No hay mesas en el mapa para exportar.");
+
+        mesas.forEach(m => {
+            const rect = m.getBoundingClientRect();
+            
+            const l = ((rect.left - mapRect.left) / mapRect.width) * 100;
+            const t = ((rect.top - mapRect.top) / mapRect.height) * 100;
+            const w = (rect.width / mapRect.width) * 100;
+            const h = (rect.height / mapRect.height) * 100;
+
+            const id = m.getAttribute('data-info');
+            html += `<div class="mesa" data-info="${id}" style="left: ${l.toFixed(4)}%; top: ${t.toFixed(4)}%; width: ${w.toFixed(4)}%; height: ${h.toFixed(4)}%;"></div>\n`;
+        });
+
+        html += "";
+
+        const area = document.getElementById('clipboard-area');
+        area.value = html;
+        area.select();
+        document.execCommand('copy');
+        alert(`¡Boom! 🚀 \nSe han exportado y copiado al portapapeles ${mesas.length} mesas en coordenadas absolutas.\n\nPégalas tal cual en tu mesas.html y mándamelas.`);
+    }
+
+</script>
+</body>
+</html>

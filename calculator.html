@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Generador Geométrico - HALL 1 (V3)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; padding: 40px; text-align: center; background: #e5e7eb; color: #1f2937; }
+        .box { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 800px; margin: 0 auto; }
+        h2 { margin-top: 0; color: #2ecc71; font-weight: 800; }
+        button { padding: 15px 30px; font-size: 16px; font-weight: bold; background: #1f2937; color: white; border: none; border-radius: 8px; cursor: pointer; transition: transform 0.2s, background 0.2s; }
+        button:hover { background: #2ecc71; transform: translateY(-2px); }
+        textarea { width: 100%; height: 300px; margin-top: 20px; font-family: monospace; border: 2px solid #ddd; padding: 15px; border-radius: 8px; font-size: 11px; box-sizing: border-box; background: #f8fafc; color: #333; }
+        .stats { margin-top: 10px; font-size: 13px; font-weight: 600; color: #64748b; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>🚀 Multiplicador de Mesas (Hall 1)</h2>
+        <p style="color: #666; margin-bottom: 20px;">
+            A partir de tus 3 bloques maestros y las 14 anclas que has mapeado, vamos a generar todo el pabellón con precisión milimétrica.
+        </p>
+        <button onclick="generarTodo()">✨ GENERAR LAS 348 MESAS</button>
+        <div id="stats" class="stats">Esperando orden...</div>
+        <textarea id="resultado" placeholder="Aquí aparecerá tu código final..."></textarea>
+    </div>
+
+    <script>
+        // --- 1. LOS DATOS EN CRUDO QUE HAS PASADO ---
+        const rawHTML = `
+<div class="mesa" data-info="TCG-A-1" style="left: 9.4207%; top: 11.0974%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="TCG-A-3" style="left: 11.5642%; top: 11.5513%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-A-4" style="left: 11.5692%; top: 12.9962%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-A-5" style="left: 11.5692%; top: 14.9964%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-A-6" style="left: 11.5692%; top: 16.4314%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-A-7" style="left: 11.5692%; top: 17.8663%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-A-8" style="left: 11.5692%; top: 19.2911%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-A-9" style="left: 11.5692%; top: 20.7211%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-A-10" style="left: 11.5692%; top: 22.1611%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-A-2" style="left: 10.5198%; top: 11.0974%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="TCG-A-12" style="left: 9.4288%; top: 23.5079%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="TCG-A-11" style="left: 10.5137%; top: 23.5079%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="TCG-A-13" style="left: 9.1000%; top: 22.1274%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-A-14" style="left: 9.1000%; top: 20.7076%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-A-15" style="left: 9.1000%; top: 18.6975%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-A-16" style="left: 9.1000%; top: 17.2625%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-A-17" style="left: 9.1000%; top: 15.8374%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-A-18" style="left: 9.1000%; top: 14.3925%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-A-19" style="left: 9.1000%; top: 12.9724%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-A-20" style="left: 9.1000%; top: 11.5476%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-1" style="left: 9.4333%; top: 26.9705%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="TCG-C-2" style="left: 10.5232%; top: 26.9705%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="TCG-C-3" style="left: 11.5842%; top: 27.4111%; width: 0.3500%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-4" style="left: 11.5842%; top: 28.8511%; width: 0.3500%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-5" style="left: 11.5842%; top: 30.8562%; width: 0.3500%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-6" style="left: 11.5842%; top: 32.3061%; width: 0.3500%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-7" style="left: 11.5842%; top: 33.7460%; width: 0.3500%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-8" style="left: 11.5842%; top: 35.1609%; width: 0.3500%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-9" style="left: 11.5842%; top: 36.6011%; width: 0.3500%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-10" style="left: 11.5842%; top: 38.0361%; width: 0.3500%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-11" style="left: 11.5842%; top: 39.4609%; width: 0.3500%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-12" style="left: 11.5842%; top: 40.8959%; width: 0.3500%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-13" style="left: 11.5840%; top: 42.3167%; width: 0.3500%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-14" style="left: 11.5840%; top: 43.7715%; width: 0.3500%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-15" style="left: 10.5260%; top: 45.1311%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="TCG-C-16" style="left: 9.4360%; top: 45.1166%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="TCG-C-17" style="left: 9.1005%; top: 43.7672%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-18" style="left: 9.1005%; top: 42.3190%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-19" style="left: 9.1005%; top: 40.3023%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-20" style="left: 9.1005%; top: 38.8524%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-21" style="left: 9.1005%; top: 37.4323%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-22" style="left: 9.1005%; top: 36.0125%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-23" style="left: 9.1005%; top: 34.5722%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-24" style="left: 9.1005%; top: 33.1372%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-25" style="left: 9.1012%; top: 31.7019%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-26" style="left: 9.0995%; top: 30.2669%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-27" style="left: 9.0995%; top: 28.8270%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-C-28" style="left: 9.0995%; top: 27.4072%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-E-3" style="left: 11.5795%; top: 48.5653%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-E-4" style="left: 11.5795%; top: 49.9954%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-E-5" style="left: 11.5795%; top: 52.0055%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-E-6" style="left: 11.5795%; top: 53.4504%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-E-7" style="left: 11.5795%; top: 54.8774%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-E-8" style="left: 11.5795%; top: 56.2995%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-E-9" style="left: 11.5795%; top: 57.7345%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-E-10" style="left: 11.5795%; top: 59.1593%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-E-11" style="left: 11.5795%; top: 60.6191%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-E-12" style="left: 11.5795%; top: 62.0540%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-E-15" style="left: 9.0995%; top: 62.0540%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-E-16" style="left: 9.0995%; top: 60.6042%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-E-17" style="left: 9.0995%; top: 58.5941%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-E-18" style="left: 9.0995%; top: 57.1541%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-E-19" style="left: 9.0995%; top: 55.7191%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-E-20" style="left: 9.0995%; top: 54.2842%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-E-21" style="left: 9.0995%; top: 52.8640%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-E-22" style="left: 9.0995%; top: 51.4241%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-E-23" style="left: 9.0995%; top: 49.9792%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-E-24" style="left: 9.0995%; top: 48.5492%; width: 0.3600%; height: 1.4198%;"></div>
+<div class="mesa" data-info="TCG-E-1" style="left: 9.4347%; top: 48.1177%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="TCG-E-2" style="left: 10.5248%; top: 48.1177%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="TCG-E-13" style="left: 10.5235%; top: 63.4187%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="TCG-E-14" style="left: 9.4435%; top: 63.4187%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="TCG-B-1" style="left: 14.5747%; top: 11.0974%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="SPORT CARDS-A-1" style="left: 19.7097%; top: 11.0974%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="SPORT CARDS-C-1" style="left: 24.8447%; top: 11.0974%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="TCG-D-1" style="left: 14.5732%; top: 26.9705%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="SPORT CARDS-B-1" style="left: 19.7083%; top: 26.9705%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="SPORT CARDS-D-1" style="left: 24.8482%; top: 26.9705%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="TCG-F-1" style="left: 14.5697%; top: 48.1177%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="SPORT CARDS-E-1" style="left: 19.7097%; top: 48.1177%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="SPORT CARDS-F-1" style="left: 24.8545%; top: 48.0953%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="TCG-G-1" style="left: 40.2695%; top: 48.1210%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="TCG-H-1" style="left: 45.4145%; top: 48.1210%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="TCG-I-1" style="left: 50.5445%; top: 48.1002%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="TCG-J-1" style="left: 65.9595%; top: 48.1095%; width: 1.0800%; height: 0.4800%;"></div>
+<div class="mesa" data-info="TCG-K-1" style="left: 71.0945%; top: 48.0735%; width: 1.0800%; height: 0.4800%;"></div>
+`;
+
+        // --- 2. REGLAS: QUÉ ANCLA USA QUÉ BLOQUE MAESTRO ---
+        const reglas = {
+            "TCG-B": "20", "SPORT CARDS-A": "20", "SPORT CARDS-C": "20",
+            "TCG-D": "28", "SPORT CARDS-B": "28", "SPORT CARDS-D": "28",
+            "TCG-F": "24", "SPORT CARDS-E": "24", "SPORT CARDS-F": "24",
+            "TCG-G": "24", "TCG-H": "24", "TCG-I": "24", "TCG-J": "24", "TCG-K": "24"
+        };
+
+        function generarTodo() {
+            // Analizar el HTML en crudo
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(rawHTML, 'text/html');
+            const divs = Array.from(doc.querySelectorAll('.mesa'));
+
+            const ref20 = []; const ref24 = []; const ref28 = [];
+            const anclas = [];
+            let htmlFinal = "\n";
+
+            // Clasificar la información que nos has pasado
+            divs.forEach(div => {
+                const id = div.getAttribute('data-info');
+                const t = parseFloat(div.style.top);
+                const l = parseFloat(div.style.left);
+                const w = parseFloat(div.style.width);
+                const h = parseFloat(div.style.height);
+                const mesaData = { id, t, l, w, h };
+
+                // Guardar los bloques maestros
+                if (id.startsWith('TCG-A-')) ref20.push(mesaData);
+                else if (id.startsWith('TCG-E-')) ref24.push(mesaData);
+                else if (id.startsWith('TCG-C-')) ref28.push(mesaData);
+                // Guardar las anclas (acaban en -1 pero no son los maestros)
+                else if (id.endsWith('-1')) anclas.push(mesaData);
+            });
+
+            // Buscar la base (el ancla) de cada bloque maestro
+            const base20 = ref20.find(m => m.id === 'TCG-A-1');
+            const base24 = ref24.find(m => m.id === 'TCG-E-1');
+            const base28 = ref28.find(m => m.id === 'TCG-C-1');
+
+            // 1. Primero, inyectamos en el código final los tres bloques maestros que mapeaste a mano
+            [...ref20, ...ref24, ...ref28].forEach(m => {
+                htmlFinal += `<div class="mesa" data-info="${m.id}" style="left: ${m.l.toFixed(4)}%; top: ${m.t.toFixed(4)}%; width: ${m.w.toFixed(4)}%; height: ${m.h.toFixed(4)}%;"></div>\n`;
+            });
+
+            // 2. Ahora viene la magia: Clonar a partir de las anclas
+            anclas.forEach(ancla => {
+                // Extraer el prefijo (ej: "TCG-B" de "TCG-B-1")
+                const prefijo = ancla.id.substring(0, ancla.id.lastIndexOf('-'));
+                const tamano = reglas[prefijo];
+
+                let bloqueReferencia = [];
+                let baseReferencia = null;
+
+                if (tamano === "20") { bloqueReferencia = ref20; baseReferencia = base20; }
+                else if (tamano === "24") { bloqueReferencia = ref24; baseReferencia = base24; }
+                else if (tamano === "28") { bloqueReferencia = ref28; baseReferencia = base28; }
+
+                if (bloqueReferencia.length > 0 && baseReferencia) {
+                    // Calculamos la distancia exacta entre el maestro y la nueva ancla
+                    const deltaX = ancla.l - baseReferencia.l;
+                    const deltaY = ancla.t - baseReferencia.t;
+
+                    bloqueReferencia.forEach(mesaMaestra => {
+                        // Calcular el ID nuevo (ej: TCG-A-5 -> SPORT CARDS-A-5)
+                        const sufijoNum = mesaMaestra.id.split('-').pop();
+                        const nuevoId = `${prefijo}-${sufijoNum}`;
+
+                        // Calcular la nueva posición sumando el Delta
+                        const finalL = mesaMaestra.l + deltaX;
+                        const finalT = mesaMaestra.t + deltaY;
+
+                        htmlFinal += `<div class="mesa" data-info="${nuevoId}" style="left: ${finalL.toFixed(4)}%; top: ${finalT.toFixed(4)}%; width: ${mesaMaestra.w.toFixed(4)}%; height: ${mesaMaestra.h.toFixed(4)}%;"></div>\n`;
+                    });
+                }
+            });
+
+            htmlFinal += "";
+
+            // Mostrar el resultado y copiar
+            const txt = document.getElementById('resultado');
+            txt.value = htmlFinal;
+            txt.select();
+            document.execCommand('copy');
+            
+            document.getElementById('stats').innerText = `¡Magia pura! Se han clonado ${htmlFinal.split('class="mesa"').length - 1} mesas. Código copiado.`;
+        }
+    </script>
+</body>
+</html>
