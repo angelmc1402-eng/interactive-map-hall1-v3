@@ -46,19 +46,6 @@
     
     body.is-state-1 .mesa, body.is-state-2 .mesa { pointer-events: auto; cursor: pointer; }
     .mesa.commercial { border-color: var(--commercial-blue); background: rgba(52, 152, 219, 0.25); }
-    .mesa.manga {
-    border-color: #e056fd;
-    background: rgba(224, 86, 253, 0.25);
-}
-
-body.is-state-1 .mesa.manga:hover,
-body.is-state-2 .mesa.manga:hover {
-    background: rgba(224, 86, 253, 0.6);
-}
-
-.mesa.manga .tooltip-footer {
-    background: #8e44ad;
-}
     .mesa.agotada { background: rgba(231, 76, 60, 0.35) !important; border-color: var(--sold-red) !important; cursor: not-allowed; }
 
     body.is-state-1 .mesa:hover, body.is-state-2 .mesa:hover { 
@@ -216,7 +203,6 @@ body.is-state-2 .mesa.manga:hover {
                            // Categories
             if (info.includes("MANGACOM")) {
                 catName = "Manga & Comics";
-                m.classList.add('manga');
             } else if (info.includes("TCG")) {
                 catName = "TCG";
             } else if (info.includes("SPORT")) {
