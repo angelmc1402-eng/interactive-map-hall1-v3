@@ -213,7 +213,7 @@
                 let price = "100,00 €";
 
                 // Logic for Commercial: Original ones + Sport Cards Zones C,D,E,F
-                const isSportComm = info.includes("SPORT") && /-(B|D|E|F)-/.test(info);
+                const isSportComm = info.includes("SPORT") && /-(B|D|F)-/.test(info);
                 const isTcgComm = info.includes("COMMERCIAL") || /-(G|H|I|J|K)-/.test(info);
 
                 if (isSportComm || isTcgComm) {
