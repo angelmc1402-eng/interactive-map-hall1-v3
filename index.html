@@ -88,9 +88,36 @@
     .sponsor-zone:hover .sponsor-logo-box { border-color: var(--vip-purple); }
     .sponsor-logo-box img { width: 100%; height: 100%; object-fit: contain; }
 
-    /* Layout for dual logos (data-dual="true") */
-    .sponsor-logo-box.dual-layout { flex-direction: column; justify-content: space-around; }
-    .sponsor-logo-box.dual-layout img { height: 45%; width: 100%; }
+    /* Layouts para repetir el mismo logo dentro de una zona */
+    .sponsor-logo-box.multi-logo {
+        display: grid;
+        gap: 4px;
+        align-items: stretch;
+        justify-items: stretch;
+    }
+    .sponsor-logo-box.multi-logo img {
+        width: 100%;
+        height: 100%;
+        min-width: 0;
+        min-height: 0;
+        object-fit: contain;
+    }
+    .sponsor-logo-box.layout-dual-horizontal {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: minmax(0, 1fr);
+    }
+    .sponsor-logo-box.layout-dual-vertical {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: repeat(2, minmax(0, 1fr));
+    }
+    .sponsor-logo-box.layout-triple-vertical {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: repeat(3, minmax(0, 1fr));
+    }
+    .sponsor-logo-box.layout-quad-vertical {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: repeat(4, minmax(0, 1fr));
+    }
 .sponsor-tooltip {
         position: absolute; 
         /* 1. Lo pegamos matemáticamente al borde exacto de la caja */
@@ -252,12 +279,31 @@
                 const ig = sp.getAttribute('data-ig');
                 const web = sp.getAttribute('data-web');
                 
-                const isDual = sp.getAttribute('data-dual') === 'true';
-                const boxClass = isDual ? "sponsor-logo-box dual-layout" : "sponsor-logo-box";
-                
-                const logoHTML = isDual 
-                    ? `<img src="${logo}" alt="${name}"><img src="${logo}" alt="${name}">`
-                    : `<img src="${logo}" alt="${name}">`;
+                // Compatibilidad: los antiguos data-dual="true" siguen viéndose en vertical.
+                const legacyDual = sp.getAttribute('data-dual') === 'true';
+                const requestedLayout = sp.getAttribute('data-logo-layout') || (legacyDual ? 'dual-vertical' : 'single');
+                const validLayouts = new Set([
+                    'single',
+                    'dual-horizontal',
+                    'dual-vertical',
+                    'triple-vertical',
+                    'quad-vertical'
+                ]);
+                const logoLayout = validLayouts.has(requestedLayout) ? requestedLayout : 'single';
+                const logoCountByLayout = {
+                    'single': 1,
+                    'dual-horizontal': 2,
+                    'dual-vertical': 2,
+                    'triple-vertical': 3,
+                    'quad-vertical': 4
+                };
+                const logoCount = logoCountByLayout[logoLayout];
+                const boxClass = logoLayout === 'single'
+                    ? 'sponsor-logo-box'
+                    : `sponsor-logo-box multi-logo layout-${logoLayout}`;
+                const logoHTML = Array.from({ length: logoCount }, () =>
+                    `<img src="${logo}" alt="${name}">`
+                ).join('');
 
                 sp.innerHTML = `
                     <div class="${boxClass}">
